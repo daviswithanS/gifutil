@@ -1,3 +1,7 @@
+// flower.go creates a gif of a flower - that is, a shape formed by
+// the polar equation r = k * cos(p * theta), where k is the radius of
+// the final product and p is the number of petals. it uses the gg
+// library for all of the drawing, found at github.com/fogleman/gg.
 package main
 
 import (
@@ -20,9 +24,11 @@ func getCoordinates(theta float64) (x, y float64) {
 	return
 }
 
+// getFrameGenerator() creates the function that will be passed to
+// gifutil.Populate() to create the frames of the gif. it is written
+// this way so that, by closure, any variables created in this generator
+// function will remain persistent through calls of getFrame()
 func getFrameGenerator() (getFrame func(int) *image.Image) {
-	// getFrame() closes over the drawing context so that it remains
-	// persistent through calls of getFrame()
 	dc := gg.NewContext(width, height)
 	dc.InvertY()
 	dc.Scale(100, 100)
@@ -54,7 +60,7 @@ func getFrameGenerator() (getFrame func(int) *image.Image) {
 		dc.SetHexColor("FFF")
 		dc.StrokePreserve()
 
-		fmt.Printf("%v/%v\n", step, steps-1)
+		fmt.Printf("%v/%v\n", step, steps-1) // a "progress bar" of sorts
 
 		if step == steps-1 {
 			dc.SavePNG("flower.png")
@@ -67,13 +73,16 @@ func getFrameGenerator() (getFrame func(int) *image.Image) {
 }
 
 func main() {
+	// create a new gif
 	out := gifutil.NewGIF(palette.WebSafe, width, height)
 
+	// fill it with frames
 	getFrame := getFrameGenerator()
 	gifutil.Populate(out, steps, getFrame)
 
 	out.Delay[len(out.Delay)-1] = 100
 
+	// output gif to file
 	writeErr := gifutil.WriteToFile(out, "flower.gif")
 	if writeErr != nil {
 		log.Fatal(writeErr)
