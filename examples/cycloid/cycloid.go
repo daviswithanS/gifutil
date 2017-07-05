@@ -1,8 +1,6 @@
-// this program creates a gif demonstrating a cycloid - the shape that
+// cycloid.go creates a gif demonstrating a cycloid - the shape that
 // is formed when you trace one point on a rolling circle. it uses the
-// very nice gg library for all of the drawing, found at
-// github.com/fogleman/gg, as well as a custom library I created for
-// using image.GIFs
+// gg library for all of the drawing, found at github.com/fogleman/gg.
 package main
 
 import (
