@@ -23,10 +23,11 @@ func getCoordinates(theta float64) (x, y float64) {
 	return
 }
 
-// get the function that generates the correct image given the frame number
+// getFrameGenerator() creates the function that will be passed to
+// gifutil.Populate() to create the frames of the gif. it is written
+// this way so that, by closure, any variables created in this generator
+// function will remain persistent through calls of getFrame()
 func getFrameGenerator() (getFrame func(int) *image.Image) {
-	// getFrame() closes over the drawing context so that it remains
-	// persistent through calls of getFrame()
 	dc := gg.NewContext(width, height)
 	dc.InvertY()
 	dc.Scale(100, 100)
@@ -69,12 +70,14 @@ func getFrameGenerator() (getFrame func(int) *image.Image) {
 }
 
 func main() {
-	// create output gif
+	// create a new gif
 	out := gifutil.NewGIF(palette.WebSafe, width, height)
 
+	// fill it with frames
 	getFrame := getFrameGenerator()
 	gifutil.Populate(out, steps, getFrame)
 
+	// output gif to file
 	writeErr := gifutil.WriteToFile(out, "cycloid.gif")
 	if writeErr != nil {
 		log.Fatal(writeErr)
