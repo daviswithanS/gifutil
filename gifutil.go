@@ -9,6 +9,13 @@ import (
 	"os"
 )
 
+// FrameGetter is an interface used by the Populate() function. All that is
+// required to implement it is a function that, when given a frame number,
+// returns the corresponding image associated with that frame.
+type FrameGetter interface {
+	GetFrame(int) *image.Image
+}
+
 // NewGIF creates a new, empty GIF struct that loops indefinitely.
 func NewGIF(pal color.Palette, width, height int) *gif.GIF {
 	return NewFiniteGIF(pal, width, height, 0)
@@ -16,7 +23,7 @@ func NewGIF(pal color.Palette, width, height int) *gif.GIF {
 
 // NewFiniteGIF creates a new, empty GIF struct that loops a fixed number of times.
 func NewFiniteGIF(pal color.Palette, width, height, loopCount int) *gif.GIF {
-	config := image.Config{pal, width, height}
+	config := image.Config{ColorModel: pal, Width: width, Height: height}
 	return &gif.GIF{LoopCount: loopCount, Config: config}
 }
 
@@ -37,13 +44,11 @@ func AttachImageDelayed(g *gif.GIF, img *image.Image, delay int) {
 	g.Delay = append(g.Delay, delay)
 }
 
-// Populate provides a framework for populating an empty gif with frames according to a
-// custom function created by the user. The provided function should, when given the
-// number of a frame (which range from 0 to frames-1), return the corresponding Image
-// for that frame.
-func Populate(g *gif.GIF, frames int, getFrame func(int) *image.Image) {
+// Populate provides a framework for populating an empty gif with frames
+// according to a custom function defined by the user.
+func Populate(g *gif.GIF, frames int, fg FrameGetter) {
 	for step := 0; step < frames; step++ {
-		frame := getFrame(step)
+		frame := fg.GetFrame(step)
 		AttachImage(g, frame)
 	}
 }

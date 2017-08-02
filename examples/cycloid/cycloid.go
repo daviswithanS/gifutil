@@ -12,8 +12,8 @@ import (
 	"math"
 )
 
-var width, height int = 600, 400
-var steps int = 32
+var width, height = 600, 400
+var steps = 32
 
 // get the xy coordinates for a given angle according to the cycloid functions
 func getCoordinates(theta float64) (x, y float64) {
@@ -23,50 +23,51 @@ func getCoordinates(theta float64) (x, y float64) {
 	return
 }
 
-// getFrameGenerator() creates the function that will be passed to
-// gifutil.Populate() to create the frames of the gif. it is written
-// this way so that, by closure, any variables created in this generator
-// function will remain persistent through calls of getFrame()
-func getFrameGenerator() (getFrame func(int) *image.Image) {
-	dc := gg.NewContext(width, height)
-	dc.InvertY()
-	dc.Scale(100, 100)
-	dc.Translate(3, 1)
+type frameGenerator struct {
+	dc *gg.Context
+}
 
-	dTheta := math.Pi / 16
+func newFrameGenerator() (fg *frameGenerator) {
+	fg = &frameGenerator{dc: gg.NewContext(width, height)}
 
-	getFrame = func(step int) *image.Image {
-		theta := float64(step) * dTheta
+	fg.dc.InvertY()
+	fg.dc.Scale(100, 100)
+	fg.dc.Translate(3, 1)
 
-		dc.SetHexColor("FCF")
-		dc.Clear()
+	return fg
+}
 
-		dc.Translate(-dTheta, 0) // keep the circle in the center
+func (fg *frameGenerator) GetFrame(step int) *image.Image {
+	const dTheta = math.Pi / 16
+	theta := float64(step) * dTheta
 
-		padding := 2 * math.Pi
-		// the path to the current point and the circle are redrawn every time
-		// so that they can update their position
-		for t := -padding; t <= theta+padding; t += dTheta {
-			x, y := getCoordinates(t)
-			dc.LineTo(x, y)
-		}
-		dc.SetHexColor("000")
-		dc.SetLineWidth(4)
-		dc.Stroke()
+	fg.dc.SetHexColor("FCF")
+	fg.dc.Clear()
 
-		dc.DrawCircle(theta, 1, 1)
-		dc.SetLineWidth(2)
-		dc.Stroke()
+	fg.dc.Translate(-dTheta, 0) // keep the circle in the center
 
-		x, y := getCoordinates(theta)
-		dc.DrawPoint(x, y, 6)
-		dc.SetHexColor("66C")
-		dc.Fill()
-
-		frame := dc.Image()
-		return &frame
+	padding := 2 * math.Pi
+	// the path to the current point and the circle are redrawn every time
+	// so that they can update their position
+	for t := -padding; t <= theta+padding; t += dTheta {
+		x, y := getCoordinates(t)
+		fg.dc.LineTo(x, y)
 	}
-	return
+	fg.dc.SetHexColor("000")
+	fg.dc.SetLineWidth(4)
+	fg.dc.Stroke()
+
+	fg.dc.DrawCircle(theta, 1, 1)
+	fg.dc.SetLineWidth(2)
+	fg.dc.Stroke()
+
+	x, y := getCoordinates(theta)
+	fg.dc.DrawPoint(x, y, 6)
+	fg.dc.SetHexColor("66C")
+	fg.dc.Fill()
+
+	frame := fg.dc.Image()
+	return &frame
 }
 
 func main() {
@@ -74,8 +75,8 @@ func main() {
 	out := gifutil.NewGIF(palette.WebSafe, width, height)
 
 	// fill it with frames
-	getFrame := getFrameGenerator()
-	gifutil.Populate(out, steps, getFrame)
+	fg := newFrameGenerator()
+	gifutil.Populate(out, steps, fg)
 
 	// output gif to file
 	writeErr := gifutil.WriteToFile(out, "cycloid.gif")
